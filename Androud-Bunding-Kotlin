@@ -1,0 +1,117 @@
+import android.content.Intent
+import android.os.Bundle
+import android.util.Log
+import android.widget.EditText
+import androidx.appcompat.app.AppCompatActivity
+import kotlinx.android.synthetic.main.activity_main.*
+
+class MainActivity : AppCompatActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+
+        val heightEdit = findViewById<EditText>(R.id.heightEdit)
+        val weightEdit = findViewById<EditText>(R.id.weightEdit)
+
+        calBmi.setOnClickListener {
+            val hStr = heightEdit.text.toString()
+            val wStr = weightEdit.text.toString()
+            Log.d("John","$hStr : $wStr -> 1")
+
+            val statusInfo = Intent(this,BmiActivity::class.java)
+            statusInfo.putExtra("height",hStr)
+            statusInfo.putExtra("weight",wStr)
+            startActivity(statusInfo)
+        }
+    }
+}
+
+import android.os.Bundle
+import android.util.Log
+import android.widget.TextView
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import com.agmail.app_bunding_kotlin_2.model.BmiBaseInfo
+
+class BmiActivity : AppCompatActivity(){
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.bmi_layout)
+
+        val test = intent
+        val heg = test.getStringExtra("height")
+        val weg = test.getStringExtra("weight")
+        Log.d("John","$heg : $weg -> 2")
+
+        try {
+            val bmiBaseInfo = BmiBaseInfo(this,heg.toString(),weg.toString())
+            val bmi = bmiBaseInfo.getBmiMsg()
+            Log.d("John","$heg : $weg ->3 ")
+
+            val bmiMsg = findViewById<TextView>(R.id.bmimsgTxt)
+            bmiMsg.text = bmiBaseInfo.getBmiMsg()
+
+            val status = findViewById<TextView>(R.id.statusTxt)
+            status.text = bmiBaseInfo.getStatusBmi()
+        }
+        catch (ex:Exception){
+            Toast.makeText(this,ex.message,Toast.LENGTH_LONG).show()
+        }
+    }
+}
+
+import android.content.Context
+import com.agmail.app_bunding_kotlin_2.R
+import kotlin.math.pow
+
+class BmiBaseInfo {
+    private var height = 0.0
+    private var weight = 0.0
+    private var bmi = 0.0
+    private lateinit var context: Context
+
+    constructor(context: Context,heightStr:String,weightStr:String){
+        while (heightStr == null || heightStr.isEmpty()){
+            throw IllegalArgumentException("錯誤的身高")
+        }
+        while (weightStr == null || weightStr.isEmpty()){
+            throw IllegalArgumentException("錯誤的體重")
+        }
+        val hep = heightStr.toDouble()
+        val wep = weightStr.toDouble()
+        setHeightAndWeight(context,hep,wep)
+    }
+    public constructor(context: Context,height:Double,weight:Double){
+        setHeightAndWeight(context,height, weight)
+    }
+
+    private fun setHeightAndWeight(context: Context, height:Double, weight:Double){
+        if (height == 0.0 || weight == 0.0){
+            throw IllegalArgumentException("身高體重不可以是 0")
+        }
+        this.height = height
+        this.weight = weight
+        this.bmi = calculateBmi(height, weight)
+        this.context = context
+    }
+     private fun calculateBmi(height:Double, weight:Double):Double{
+         return weight / (height / 100).pow(2)
+    }
+    fun statusBmi():String{
+        var msg = context.getString(R.string.status_low)
+        when(bmi){
+            in 0.0..20.0 -> msg = context.getString(R.string.status_low)
+            in 21.0..26.0 -> msg = context.getString(R.string.status_normal)
+            in 27.0..30.0 -> msg = context.getString(R.string.status_height)
+            in 31.0..40.0 -> msg = context.getString(R.string.status_too_height)
+            in 41.0..50.0 -> msg = context.getString(R.string.status_danger)
+        }
+        return msg
+    }
+    fun getBmiMsg ():String{
+        return String.format("BMI數值: %.2f",bmi)
+    }
+    fun getStatusBmi ():String{
+        return String.format("身高:%.2f%n 體重:%.2f%n 狀態:%s",height,weight,statusBmi())
+    }
+}
